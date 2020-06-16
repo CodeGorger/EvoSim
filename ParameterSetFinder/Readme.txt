@@ -1,0 +1,2 @@
+A shellscript that realizes a 1+1 evolutionary algorithm. Helping to find a parameter set that makes the EvoSim have an equilibrium.
+The fitness function is simply the duration the simulation ran, taking the parameter as an input.
