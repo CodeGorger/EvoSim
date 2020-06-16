@@ -1,0 +1,662 @@
+
+#include "SimulationEngine.h"
+#include <algorithm>
+#include <cmath>
+#include "EvoSimRandom.h"
+#include "CImg.h"
+#include <fstream>
+
+SimulationEngine::SimulationEngine() :
+    _herbivoreExtinct(false),
+    _plantsExtinct(false),
+    _plantMap(Grid<Plant>(0, 0, Plant())),
+    _primalPlant(Plant()),
+    _primalPlantCount(0),
+    _primalHerbivore(Herbivore()),
+    _primalHerbivoreCount(0),
+    _abortIfHerbivoreDistint(true),
+    _abortIfPlantsDistint(true),
+    _isCsvFileRequired(true),
+    _tickCounter(0),
+    _primalHerbivoreSpawnMonth(10),
+    _plantCounter(0),
+    _maxIterations(1000)
+{
+    _plantAbundanceHistory = std::vector<size_t>();
+    _herbivoreAbundanceHistory = std::vector<size_t>();
+}
+
+void SimulationEngine::SetWorld(LandWaterMap inWorld)
+{
+    _world = inWorld;
+    _plantMap = Grid<Plant>(
+        inWorld.GetWidth(),
+        inWorld.GetHeight(),
+        Plant());
+}
+
+void SimulationEngine::SetCsvRequired(bool inCsvRequired)
+{
+    _isCsvFileRequired = inCsvRequired;
+}
+
+void SimulationEngine::SetVisualOutputRequired(bool inIsVisualOutputRequired)
+{
+
+}
+
+void SimulationEngine::SetPrimalPlant(Plant inPrimalPlant, size_t inPrimalPlantCount)
+{
+    _primalPlant = inPrimalPlant;
+    _primalPlantCount = inPrimalPlantCount;
+}
+
+void SimulationEngine::SetPrimalHerbivore(
+    Herbivore inPrimalHerbivore,
+    size_t inPrimalHerbivoreCount, 
+    size_t inPrimalHerbivoreSpawnMonth)
+{
+    _primalHerbivore = inPrimalHerbivore;
+    _primalHerbivoreCount = inPrimalHerbivoreCount; 
+    _primalHerbivoreSpawnMonth = inPrimalHerbivoreSpawnMonth;
+}
+
+void SimulationEngine::SetAbortIfHerbivoreDistint(bool inAbortIfHerbivoreDistint)
+{
+    _abortIfHerbivoreDistint = inAbortIfHerbivoreDistint;
+}
+
+void SimulationEngine::SetAbortIfPlantsDistint(bool inAbortIfPlantsDistint)
+{
+    _abortIfPlantsDistint = inAbortIfPlantsDistint;
+}
+
+void SimulationEngine::SetMaxIterations(int inMaxIterations)
+{
+    _maxIterations = inMaxIterations;
+}
+
+// The simulation really really starts here
+int SimulationEngine::Run()
+{
+    int ret = 0;
+    _spawnPrimalPlants();
+
+    for (size_t t = 0; t < _maxIterations; t++)
+    {
+        if (t == _primalHerbivoreSpawnMonth)
+        {
+            _spawnPrimalHerbivore();
+        }
+
+        if (t%10 == 0)
+        {
+            PrintMapImage();
+        }
+
+        _tick();
+
+        if (_abortIfHerbivoreDistint && _areAllHerbivoreExtinct())
+        {
+            ret = 1;
+            break;
+        }
+
+        if (_abortIfPlantsDistint && _areAllPlantsExtinct())
+        {
+            ret = 2;
+            break;
+        }
+    }
+
+
+    _makeAbundanceCsv();
+    _printPlantsHerbivors();
+
+    return ret;
+}
+
+
+void SimulationEngine::_makeAbundanceCsv()
+{
+    std::ofstream aFile;
+    aFile.open("plantHerbivoreAbundance.csv");
+
+    aFile << "Month,PlantAbundance,HerbivoreAbundance\n";
+
+    for (int i = 0; i < _tickCounter ; i++)
+    {
+        aFile << std::to_string(i)+",";
+        aFile << std::to_string(_plantAbundanceHistory[i]) + ",";
+        aFile << std::to_string(_herbivoreAbundanceHistory[i]) + "\n";
+    }
+
+    aFile.close();
+}
+
+void SimulationEngine::_printPlantsHerbivors()
+{
+    std::ofstream hFile;
+    hFile.open("herbivore.csv");
+
+    hFile << Herbivore::GetCSVHeader() + "\n";
+    for (size_t i = 0; i <_deadHerbivore.size(); i++)
+    {
+        hFile << _deadHerbivore[i].PrintAsCsv() + "\n";
+    }
+    for (size_t i = 0; i < _allHerbivore.size(); i++)
+    {
+        hFile << _allHerbivore[i].PrintAsCsv() + "\n";
+    }
+    hFile.close();
+
+
+    std::ofstream pFile;
+    pFile.open("plants.csv");
+
+    pFile << Plant::GetCSVHeader() + "\n";
+    for (size_t i = 0; i < _plantMap.GetHeight(); i++)
+    {
+        for (size_t j = 0; j < _plantMap.GetWidth(); j++)
+        {
+            if (_plantMap.Get(j, i).IsNotNullPlant())
+            {
+                pFile << _plantMap.Get(j, i).PrintAsCsv() + "\n";
+            }
+        }
+    }
+    for (size_t i = 0; i < _deadPlants.size(); i++)
+    {
+        pFile << _deadPlants[i].PrintAsCsv() + "\n";
+    }
+
+    pFile.close();
+}
+
+bool SimulationEngine::_areAllHerbivoreExtinct()
+{
+    return _herbivoreExtinct;
+}
+
+
+bool SimulationEngine::_areAllPlantsExtinct()
+{
+    return _plantsExtinct;
+}
+
+
+void SimulationEngine::_addPlant(
+    Plant inParent,
+    size_t inCurrentMonth,
+    Point<size_t> inPosition,
+    int id)
+{
+    Plant p = Plant(
+        inParent,
+        inPosition,
+        inCurrentMonth,
+        inParent.GetPhyloName()+"-"+std::to_string(id));
+
+    double wd = _world.GetWaterDistance(inPosition);
+    p.SetWaterDistance(wd);
+    _plantMap.Set(inPosition, p);
+    _plantCounter++;
+}
+
+
+void SimulationEngine::_addHerbivore(
+    Herbivore inParent,
+    size_t inCurrentMonth,
+    Point<size_t> inPosition,
+    int id)
+{
+    Herbivore tmp = 
+        Herbivore(  inParent,
+                    inPosition,
+                    inCurrentMonth,
+                    inParent.GetPhyloName() + "-" + std::to_string(id));
+    _allHerbivore.push_back(tmp);
+}
+
+
+void SimulationEngine::_spawnPrimalPlants()
+{    
+    for (size_t p = 0; p < _primalPlantCount; p++)
+    {
+        int failedSetTries = 0;
+        bool badPlantPos = true;
+
+        //Retry finding a space until the place is good.
+        // or until 30 tries have failed
+        while (badPlantPos && failedSetTries < 30)
+        {
+            //Get a random land space near the spawn on land.
+            Point<size_t> tryPos = _world.SearchPrimalSpawnCandidate(0.2);
+
+            // If there is already a plant there
+            if(_plantMap.Get(tryPos).IsNotNullPlant())
+            {
+                failedSetTries++;
+                badPlantPos = true;
+            }
+            else
+            {// If there isnt already a plant there, plant the plant
+                _addPlant(_primalPlant, 0, tryPos, p);
+            }
+        }
+    }
+}
+
+void SimulationEngine::_spawnPrimalHerbivore()
+{
+    for (size_t p = 0; p < _primalHerbivoreCount; p++)
+    {
+        Point<size_t> tryPos = _world.SearchPrimalSpawnCandidate(0.2);
+
+        _addHerbivore(_primalHerbivore, _tickCounter, tryPos, p);
+    }
+}
+
+void SimulationEngine::PrintMapImage()
+{
+    _drawMap("img" + std::to_string(_tickCounter) + ".bmp");
+}
+
+
+
+void SimulationEngine::_drawMap(std::string filename)
+{
+    const unsigned char redSpawn[] = { 255,0,0 };
+    const unsigned char greenLand[] = { 0,100,0 };
+    const unsigned char greenPlant[] = { 0,200,0 };
+    const unsigned char blueWater[] = { 0,0,130 };
+    const unsigned char tealPlantHerbivore[] = { 0,255,255 };
+    const unsigned char blueHerbivore[] = { 0,128,255 };
+    const unsigned char pinkHuh[] = { 255,00,130 };
+
+    size_t w=_world.GetWidth();
+    size_t h= _world.GetHeight();
+    size_t pixelWidth = 4;
+    cimg_library::CImg<unsigned char> output(w * pixelWidth, h * pixelWidth, 1, 3, 0);
+
+    for (size_t i = 0; i < h; i++)
+    {
+        for (size_t j = 0; j < w; j++)
+        {
+            unsigned char currentColor[] = { 0,0,0 };
+            if (_plantMap.Get(j, i).IsNotNullPlant())
+            {
+                currentColor[0] = greenPlant[0];
+                currentColor[1] = greenPlant[1];
+                currentColor[2] = greenPlant[2];
+            }
+            else
+            {
+                switch (_world.GetMap().Get(j, i))
+                {
+                case TileType::Land:
+                    currentColor[0] = greenLand[0];
+                    currentColor[1] = greenLand[1];
+                    currentColor[2] = greenLand[2];
+                    break;
+
+                case TileType::Water:
+                    currentColor[0] = blueWater[0];
+                    currentColor[1] = blueWater[1];
+                    currentColor[2] = blueWater[2];
+                    break;
+
+                default:
+                    currentColor[0] = pinkHuh[0];
+                    currentColor[1] = pinkHuh[1];
+                    currentColor[2] = pinkHuh[2];
+                    std::cout << "Huh?! default..." << std::endl;
+                    break;
+                }
+            }
+
+            output.draw_rectangle(j * pixelWidth, i * pixelWidth, (j + 1) * pixelWidth - 1, (i + 1) * pixelWidth - 1, currentColor, 1.0);
+        }
+    }
+
+    for (size_t i = 0; i < _allHerbivore.size(); i++)
+    {
+        int x = _allHerbivore[i].GetPosition().GetX();
+        int y = _allHerbivore[i].GetPosition().GetY();
+        if (_plantMap.Get(x, y).IsNotNullPlant())
+        {
+            output.draw_rectangle(x * pixelWidth, y * pixelWidth, (x + 1) * pixelWidth - 1, (y + 1) * pixelWidth - 1, tealPlantHerbivore, 1.0);
+        }
+        else
+        {
+            output.draw_rectangle(x * pixelWidth, y * pixelWidth, (x + 1) * pixelWidth - 1, (y + 1) * pixelWidth - 1, blueHerbivore, 1.0);
+        }
+    }
+
+    output.save_bmp(filename.c_str());
+}
+
+
+
+
+
+
+
+
+
+void SimulationEngine::_tick()
+{
+    // It's the next month
+    _tickCounter++;
+    _calculateTemperatures();
+
+    // Herbivore space constraints rivalery
+    _herbivoreTickRivalery();
+
+    // Herbivore temperature constraints rivalery
+    _herbivoreTickTemperature();
+
+    // Plant 
+    _plantTickAgingTemperature();
+
+    _plantAbundanceHistory.push_back(_plantCounter);
+    _herbivoreAbundanceHistory.push_back(_allHerbivore.size());
+
+    _tickExtinction();
+
+    // HERBIVORE
+    _tickHandleLivingHerbivores();
+   
+    // PLANTS
+    _tickHandleLivingPlants();
+}
+
+
+bool _compareHerbivore(std::pair <double, size_t> i1, std::pair <double, size_t> i2)
+{
+    return (i1.first < i2.first);
+}
+
+// Will return the id's of the herbivore must die
+// will check the defense factor of all incoming and will let return all
+// but the three strongest
+std::vector<size_t> SimulationEngine::_determineStrongestHerbivores(
+    std::vector< std::pair <double, size_t>> inDefenseAndId)
+{
+    sort(inDefenseAndId.begin(), inDefenseAndId.end(), _compareHerbivore);
+    std::vector<size_t> ret;
+    for(size_t i = 3; i < inDefenseAndId.size(); i++)
+    {
+        ret.push_back(inDefenseAndId[i].second);
+    }
+    return ret;
+}
+
+
+void SimulationEngine::_herbivoreTickRivalery()
+{
+    if (_tickCounter-1==_primalHerbivoreSpawnMonth)
+    {
+        // If this wouldnt be done, all herbivores but 3
+        // of the primal herbivore would die due rivalery
+        return;
+    }
+    std::vector< std::pair <double,size_t>> defenseAndId;
+    
+    // Foreach Herbivore
+    for (size_t i = 0; i < _allHerbivore.size(); i++)
+    {
+        defenseAndId.clear();
+        defenseAndId.push_back(std::pair <double, size_t>(_allHerbivore[i].GetDefenseFactor(),i));
+
+        // find all other with the same locations
+        for (size_t j = i+1; j < _allHerbivore.size(); j++)
+        {
+            if (_allHerbivore[j].GetPosition().Equals(_allHerbivore[i].GetPosition()))
+            {
+                defenseAndId.push_back(std::pair <double, size_t>(_allHerbivore[j].GetDefenseFactor(), j));
+            }
+        }
+
+        // all but three herbivore with the strongest defense factor must die
+        // due to complicated index shifting, every to-die herbivore will be marked
+        // in a first run and in a second will be xxx-ed
+        std::vector<size_t> mustDieIds=_determineStrongestHerbivores(defenseAndId);
+        for (size_t d = 0; d < mustDieIds.size(); d++)
+        {
+            _allHerbivore[mustDieIds[d]].SetMarkedForRivalDeath();
+        }
+        for(size_t d = 0; d < _allHerbivore.size(); d++)
+        {
+            if (_allHerbivore[d].IsMarkedForRivalDeath())
+            {
+                _allHerbivore[d].DeadDueRival(_tickCounter);
+                _deadHerbivore.push_back(_allHerbivore[d]);
+                _allHerbivore.erase(_allHerbivore.begin() + d);
+                d--;
+            }
+        }
+    }
+}
+
+void SimulationEngine::_herbivoreTickTemperature()
+{
+    // Foreach Herbivore
+    for (size_t i = 0; i < _allHerbivore.size(); i++)
+    {
+        size_t y_location=_allHerbivore[i].GetPosition().GetY();
+        double tmpTemperature = _getTemperature(y_location);
+        if (_allHerbivore[i].CheckIfWillDie(tmpTemperature))
+        {
+            _allHerbivore[i].SetDeathMonth(_tickCounter);
+            if (_isCsvFileRequired)
+            {
+                _deadHerbivore.push_back(_allHerbivore[i]);
+            }
+            _allHerbivore.erase(_allHerbivore.begin() + i);
+        }
+    }
+}
+
+
+void SimulationEngine::_plantTickAgingTemperature()
+{
+    for (size_t i = 0; i < _plantMap.GetHeight(); i++)
+    {
+        for (size_t j = 0; j < _plantMap.GetWidth(); j++)
+        {
+            if (_plantMap.Get(j, i).IsNotNullPlant())
+            {
+                Plant p = _plantMap.Get(j, i);
+                size_t y_location = p.GetPosition().GetY();
+                double tmpTemperature = _getTemperature(y_location);
+                if (p.CheckIfWillDie(tmpTemperature))
+                {
+                    p.SetDeathMonth(_tickCounter);
+                    if (_isCsvFileRequired)
+                    {
+                        _deadPlants.push_back(p);
+                    }
+                    _plantMap.Set(j, i, Plant());
+                    _plantCounter--;
+                }
+            }
+        }
+    }
+}
+
+
+void SimulationEngine::_tickExtinction()
+{
+    if (_plantCounter == 0)
+    {
+        _plantsExtinct = true;
+    }
+
+    if (_allHerbivore.size() == 0 && _primalHerbivoreSpawnMonth < _tickCounter)
+    {
+        _herbivoreExtinct = true;
+    }
+}
+
+
+
+// Will cycle through all herbivores and do:
+//   h.Tick ... Calc individual progress (age, hunger, reproduction maturity)
+//   search and choose a new site
+//   an evtl let them eat
+void SimulationEngine::_tickHandleLivingHerbivores()
+{
+    for (size_t i = 0; i < _allHerbivore.size(); i++)
+    {
+        Herbivore & h = _allHerbivore[i];
+        size_t y_location = h.GetPosition().GetY();
+        double tmpTemperature = _getTemperature(y_location);
+        h.Tick(tmpTemperature);
+        std::vector<std::pair<Point<size_t>, bool>> foundLocationKandidates;
+        foundLocationKandidates = SearchFoodAndLocationsForHerbivore(h);
+        h.ChooseSite(
+            foundLocationKandidates,
+            _temperatureList);
+
+        if (_plantMap.Get(h.GetPosition()).IsNotNullPlant())
+        {
+            // This plant will get eaten(partitially) by the herbivore h
+            // but only if the defense factor are ok
+            // and the herbivore is hungry enough
+            if (h.IsHungry() && 
+                _plantMap.Get(h.GetPosition()).GetDefenseFactor() <= h.GetDefenseFactor())
+            {
+                _plantMap.Get(h.GetPosition()).Eaten();
+                h.Ate();
+            }
+        }
+        std::vector<Herbivore> childHerbivoreList = h.GetChildList(_tickCounter);
+        _allHerbivore.insert(_allHerbivore.end(), childHerbivoreList.begin(), childHerbivoreList.end());
+    }
+}
+
+// Will return a valid list of fields and a bool if it has food of not
+std::vector<std::pair<Point<size_t>, bool>>
+    SimulationEngine::SearchFoodAndLocationsForHerbivore(
+    Herbivore inHerbivore)
+{
+    double q = inHerbivore.GetQualityOfSense();
+    int searchTries = (int)floor(q * q / sqrt(q));
+
+    // will return a location and if it was successful
+    Point<size_t> p = inHerbivore.GetPosition();
+
+    std::vector < std::pair<Point<size_t>, bool>> returnValue= std::vector < std::pair<Point<size_t>, bool>>();
+
+    for (int t = 0; t<int(std::max(3, searchTries)); t++)
+    {
+        // will return a location and the bool if it was successful
+        std::pair<Point<size_t>, bool> tmpSite = _world.SearchSpawn(3, q + 2, p);
+        if (tmpSite.second)
+        {
+            // tmpSite is just being reused. Yet, the meaning of the boolean 
+            // changes from "success" to "is there food"
+            tmpSite.second = (_plantMap.Get(tmpSite.first).IsNotNullPlant());
+            returnValue.push_back(tmpSite);
+        }
+    }
+    return returnValue;
+}
+
+double SimulationEngine::_getTemperature(size_t y_location)
+{
+    return _temperatureList[y_location];
+}  
+
+
+void SimulationEngine::_calculateTemperatures()
+{
+    // hh ... height of map
+    size_t hh = _world.GetHeight();
+    // hh / 2 ... equator
+    // hh * 0.1 * sin((self.tickCounter % 12) / 12 * pi * 2) ... change for month
+    // mtp ... max temperature position
+    double mtp = sin(((_tickCounter % 12) / 12) * 3.14159265 * 2);
+
+    // d ... deviation
+    double d = EvoSimRandom::GetNormalDistRandom(0.1, 0.05);
+
+    double tmpYOfMaxTemperature = hh / 2 + hh * d * mtp;
+    
+
+    std::vector<double> tmpTemperatureList = std::vector<double>();
+
+    double yOMT = tmpYOfMaxTemperature;
+    double tMax = EvoSimRandom::GetNormalDistRandom(40, 3);
+
+    for (size_t i = 0; i < hh; i++)
+    {
+        tmpTemperatureList.push_back(tMax - ((double)2 * (50)) * abs((yOMT - ((double)i)) / ((double)hh)));
+    }
+    _temperatureList = tmpTemperatureList;
+
+}
+
+
+
+
+void SimulationEngine::_tickHandleLivingPlants()
+{
+    size_t tw = _plantMap.GetWidth();
+    size_t th = _plantMap.GetHeight();
+    for (size_t h = 0; h < th; h++)
+    {
+        for (size_t w = 0; w < tw; w++)
+        {
+            if (_plantMap.Get(w, h).IsNotNullPlant())
+            {
+                _plantMap.Get(w, h).Tick(_getTemperature(h));
+                _plantKidPlants(
+                    _plantMap.Get(w, h).CreateChildList( _tickCounter),
+                    _plantMap.Get(w, h).GetSeedLightness(),
+                    Point<size_t>(w,h));
+            }
+        }
+    }
+}
+
+
+void SimulationEngine::_plantKidPlants(std::vector<Plant> inKids, double inSeedlightnessfactor, Point<size_t> inMotherLocation)
+{
+    for (size_t i=0; i < inKids.size(); i++)
+    {
+        //k in kids :
+        int failedSetTries = 0;
+        bool hasBeenPlanted = false;
+        // Retry finding a space until the place is good.
+        while (!hasBeenPlanted && failedSetTries++ < 10)
+        {
+            // see Plant::getChildList()->x, y is motherXand motherY until we found a proper X, Y
+            Point<size_t> motherPosition = inMotherLocation;
+
+            // Check the map for a random space near the spawn on land. (will also return successful find)
+            std::pair<Point<size_t>,bool> tryPos = _world.SearchSpawn(10, inSeedlightnessfactor, motherPosition);
+
+            if (tryPos.second)
+            {
+                Point<size_t> pos = tryPos.first;
+                // Only place it there if no other plant has occupied this place.
+                if(!_plantMap.Get(pos).IsNotNullPlant())
+                {
+                    // The first time this happens a place was found
+                    inKids[i].SetPosition(pos);
+                    double wd = _world.GetWaterDistance(pos);
+                    inKids[i].SetWaterDistance(wd);
+                    _plantMap.Set(pos, inKids[i]);
+                    _plantCounter++;
+                    hasBeenPlanted = true;
+                }
+            }
+        }
+        if (failedSetTries >= 10)
+        {
+            std::cout << "Failed to set kid plants" << std::endl;
+        }
+    }
+}
