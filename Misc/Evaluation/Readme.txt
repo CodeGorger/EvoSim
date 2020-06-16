@@ -1,0 +1,1 @@
+No garantee for these scripts!
