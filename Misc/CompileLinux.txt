@@ -1,0 +1,4 @@
+For linux, must be link with 
+-lm -lpthread -L/usr/X11R6/lib
+
+https://cimg.eu/reference/group__cimg__overview.html
