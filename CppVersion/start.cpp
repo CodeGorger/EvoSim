@@ -81,7 +81,8 @@ void InitializeRandomGenerator(char* mainArgvs[])
     }
     else
     {
-        unsigned int timelySeed = std::chrono::system_clock::now().time_since_epoch().count();
+        std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+        unsigned int timelySeed = (unsigned int)now.time_since_epoch().count();
         EvoSimRandom::SetSeed(timelySeed);
     }
 }

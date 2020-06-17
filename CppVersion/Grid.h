@@ -52,17 +52,16 @@ Grid<T>::Grid(size_t inWidth, size_t inHeight, T initVal)
 template<typename T>
 T & Grid<T>::Get(Point<size_t> inPosition)
 {
+	static T failed = T();
 	if (inPosition.GetX() >= _width)
 	{
 		std::cout << "Fail! Grid<T>::Get: X >= _width" << std::endl;
-		T t = T();
-		return t;
+		return failed;
 	}
 	if (inPosition.GetY() >= _height)
 	{
 		std::cout << "Fail! Grid<T>::Get: Y >= _height" << std::endl;
-		T t = T();
-		return t;
+		return failed;
 	}
 	return _data[inPosition.GetX() + inPosition.GetY() * _width];
 }
@@ -71,17 +70,16 @@ T & Grid<T>::Get(Point<size_t> inPosition)
 template<typename T>
 T & Grid<T>::Get(size_t inX, size_t inY)
 {
+	static T failed = T();
 	if (inX >= _width)
 	{
 		std::cout << "Fail! Grid<T>::Get: inX >= _width" << std::endl;
-		T t=T();
-		return t;
+		return failed;
 	}
 	if (inY >= _height)
 	{
 		std::cout << "Fail! Grid<T>::Get: inY >= _height" << std::endl;
-		T t = T();
-		return t;
+		return failed;
 	}
 	return _data[inX + inY * _width];
 }

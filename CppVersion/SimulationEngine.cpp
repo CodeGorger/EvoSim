@@ -124,7 +124,7 @@ void SimulationEngine::_makeAbundanceCsv()
 
     aFile << "Month,PlantAbundance,HerbivoreAbundance\n";
 
-    for (int i = 0; i < _tickCounter ; i++)
+    for (size_t i = 0; i < _tickCounter ; i++)
     {
         aFile << std::to_string(i)+",";
         aFile << std::to_string(_plantAbundanceHistory[i]) + ",";

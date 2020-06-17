@@ -41,7 +41,7 @@ private:
 	int _birthMonth;
 	std::string _deathReason;
 	int _kidCount;
-	int _foodChunksRemaining;
+	double _foodChunksRemaining;
 	std::string _phyloName;
 	double _isWaterDistance;
 
