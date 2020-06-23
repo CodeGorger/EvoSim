@@ -51,7 +51,7 @@ private:
 	double _reproductionProgress;
 	std::string _phyloName;
 
-	int _kidCount;
+	size_t _kidCount;
 
 
 	static double _percentRequiredForReproduction;

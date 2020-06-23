@@ -4,6 +4,7 @@
 #include "Plant.h"
 #include "Herbivore.h"
 #include "LandWaterMap.h"
+#include "PlantMap.h"
 #include <vector>
 #include <memory>
 
@@ -17,10 +18,9 @@ private:
 	std::vector<size_t> _herbivoreAbundanceHistory;
 
 	// std::vector<Plant> _allPlants;
-	Grid<Plant> _plantMap;
-	std::vector<Plant> _deadPlants;
+	PlantMap _plantMap;
+	std::vector<std::shared_ptr<Plant> > _deadPlants;
 
-	size_t _plantCounter;
 	LandWaterMap _world;
 	bool _isCsvFileRequired;
 	size_t _maxIterations;
@@ -54,12 +54,12 @@ private:
 		Plant inParent,
 		size_t inCurrentMonth,
 		Point<size_t> inPosition,
-		int id);
+		size_t id);
 	void _addHerbivore(
 		Herbivore inParent,
 		size_t inCurrentMonth,
 		Point<size_t> inPosition,
-		int id);
+		size_t id);
 
 
 
@@ -82,7 +82,7 @@ private:
 	void _tickHandleLivingHerbivores();
 	void _tickHandleLivingPlants();
 	void _plantKidPlants(
-		std::vector<Plant> inKids,
+		std::vector<std::shared_ptr<Plant> > inKids,
 		double seedlightnessfactor, 
 		Point<size_t> inMotherLocation);
 

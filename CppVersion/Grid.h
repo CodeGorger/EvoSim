@@ -3,16 +3,26 @@
 
 #include <vector>
 #include <iostream>
+#include "Point.h"
 
+// A class that will hold a 2D 'array' of type T
 template<typename T>
 class Grid
 {
 public:
+	// Will create the 2D array with size width and height
+	// All entries will initially be set to initVal
 	Grid(size_t width, size_t height, T initVal);
 
+	// Will return a reference of the object at inPosition
 	T & Get(Point<size_t> inPosition);
+
+	// Will return a reference of the object at inX,inY
 	T & Get(size_t inX, size_t inY);
+
+	// Will set the object at inPosition to inVal
 	void Set(Point<size_t> inPosition, T inVal);
+	// Will set the object at inX,inY to inVal
 	void Set(size_t inX, size_t inY, T inVal);
 
 	size_t GetWidth();

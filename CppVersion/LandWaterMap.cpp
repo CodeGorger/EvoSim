@@ -42,11 +42,11 @@ void LandWaterMap::_searchForGlobalSpawn()
                 
         double factorX = ((1 + 3 * ((double)tries) / maxTries) / 8);
         double stdX = ((double)mapCenter.GetX()) * factorX;
-        double randX = EvoSimRandom::GetNormalDistRandom(mapCenter.GetX(), stdX);
+        double randX = EvoSimRandom::GetNormalDistRandom(((double)mapCenter.GetX()), stdX);
 
         double factorY = ((1 + 3 * ((double)tries) / maxTries) / 8);
         double stdY = ((double)mapCenter.GetY()) * factorY;
-        double randY = EvoSimRandom::GetNormalDistRandom(mapCenter.GetY(), stdY);
+        double randY = EvoSimRandom::GetNormalDistRandom(((double)mapCenter.GetY()), stdY);
         
         _globalSpawn=Point<size_t>(
             (size_t)floor(randX),
@@ -331,8 +331,8 @@ Point<size_t> LandWaterMap::SearchPrimalSpawnCandidate(double inStandardDevFacto
             ((double)_map.GetHeight()) *
             factor *
             inStandardDevFactor;
-        double tryX = EvoSimRandom::GetNormalDistRandom( globalSpawn.GetX(), stdX );
-        double tryY = EvoSimRandom::GetNormalDistRandom( globalSpawn.GetY(), stdY );
+        double tryX = EvoSimRandom::GetNormalDistRandom( ((double)globalSpawn.GetX()), stdX );
+        double tryY = EvoSimRandom::GetNormalDistRandom(((double)globalSpawn.GetY()), stdY );
 
         Point<size_t> _spawnCandidate = Point<size_t>(
             (size_t) floor(tryX),

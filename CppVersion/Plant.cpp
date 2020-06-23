@@ -18,7 +18,6 @@ double Plant::_reproductionTemperaturePercent = 5;
 
 Plant::Plant() :
     _position(Point<size_t>(0, 0)),
-    _isNullPlant(true),
 
     _defenseFactor(0),
     _deathMonth(0),
@@ -62,7 +61,6 @@ Plant::Plant(
     _temperatureSpan(inTemperatureSpan),
     _phyloName(inPhyloName),
     _position(Point<size_t>(0,0)),
-    _isNullPlant(false),
 
     _isWaterDistance(0),
     _deathMonth(0),
@@ -90,7 +88,6 @@ Plant::Plant(Plant inParent,
     _position(inPosition),
     _phyloName(inPhyloName),
     _foodChunksRemaining(inParent.GetFoodChunks()),
-    _isNullPlant(false),
     _kidCount(0),
     _age(0),
     _deathMonth(0),
@@ -113,9 +110,10 @@ Point<size_t> Plant::GetPosition()
 
 
 
-std::vector<Plant> Plant::CreateChildList(size_t inCurrentMonth)
+std::vector< std::shared_ptr<Plant> > Plant::CreateChildList(size_t inCurrentMonth)
 {
-    std::vector<Plant> tmpChildList = std::vector<Plant>();
+    std::vector< std::shared_ptr<Plant> > tmpChildList;
+    tmpChildList = std::vector< std::shared_ptr<Plant> >();
 
     // If the plant has not yet worked enough for kids
     if (_reproductionProgress < _percentRequiredForReproduction)
@@ -149,7 +147,8 @@ std::vector<Plant> Plant::CreateChildList(size_t inCurrentMonth)
         double tmpKidTemperatureSpan =
             _temperatureSpan_MPS.EvtlMutate(_temperatureSpan);
 
-        Plant tmpKid = Plant(
+        std::shared_ptr<Plant> tmpKid = 
+            std::shared_ptr<Plant>( new Plant(
             tmpKidMaxWaterDistance,
             tmpKidSeedProdFactor,
             tmpKidSeedLightness,
@@ -159,7 +158,7 @@ std::vector<Plant> Plant::CreateChildList(size_t inCurrentMonth)
             tmpKidFavoriteTemperature,
             tmpKidTemperatureSpan,
             _phyloName+"-"+std::to_string(i+1),
-            inCurrentMonth);
+            inCurrentMonth) );
 
         tmpChildList.push_back(tmpKid);
     }
@@ -323,10 +322,6 @@ void Plant::SetWaterDistance(double inWaterDistance)
     _isWaterDistance = inWaterDistance;
 }
 
-bool Plant::IsNotNullPlant()
-{
-    return !_isNullPlant;
-}
 
 std::string Plant::GetCSVHeader()
 {

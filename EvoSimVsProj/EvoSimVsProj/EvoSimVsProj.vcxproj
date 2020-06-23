@@ -146,6 +146,7 @@
     <ClInclude Include="..\..\CppVersion\LandWaterMap.h" />
     <ClInclude Include="..\..\CppVersion\MutatingPropertyStatic.h" />
     <ClInclude Include="..\..\CppVersion\Plant.h" />
+    <ClInclude Include="..\..\CppVersion\PlantMap.h" />
     <ClInclude Include="..\..\CppVersion\Point.h" />
     <ClInclude Include="..\..\CppVersion\SimulationEngine.h" />
     <ClInclude Include="..\..\CppVersion\TileType.h" />
@@ -156,6 +157,7 @@
     <ClCompile Include="..\..\CppVersion\LandWaterMap.cpp" />
     <ClCompile Include="..\..\CppVersion\MutatingPropertyStatic.cpp" />
     <ClCompile Include="..\..\CppVersion\Plant.cpp" />
+    <ClCompile Include="..\..\CppVersion\PlantMap.cpp" />
     <ClCompile Include="..\..\CppVersion\SimulationEngine.cpp" />
     <ClCompile Include="..\..\CppVersion\start.cpp" />
   </ItemGroup>

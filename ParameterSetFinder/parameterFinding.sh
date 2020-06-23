@@ -64,7 +64,8 @@ do
   for i in $(seq 1 1 $MONTECARLO)
   do
     # One single simulationRun
-    python3 ../pythonSimulation/simulation.py ${PARAMETER[*]}
+    # python3 ../pythonSimulation/simulation.py ${PARAMETER[*]}
+    ./EvoSimVsProj.exe ${PARAMETER[*]}
     case $? in
 	  1) 
         echo " Herbivore distinct "

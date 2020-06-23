@@ -8,7 +8,7 @@
 #include <chrono>
 #include "SimulationEngine.h"
 
-
+void parseAllDecimalPoints(int argc, char* argv[]);
 void PrintArgumentList(char* mainArgvs[]);
 void SetStaticPlantMutationProperties(char* mainArgvs[]);
 void SetStaticHerbivoreMutationProperties(char* mainArgvs[]);
@@ -31,6 +31,10 @@ int main(int argc, char* argv[])
         PrintArgumentList(argv);
     }
 
+    parseAllDecimalPoints(argc, argv);
+
+    InitializeRandomGenerator(argv);
+
      LandWaterMap world = LandWaterMap(
         std::stoi(argv[2]),
         std::stoi(argv[3]),
@@ -42,7 +46,6 @@ int main(int argc, char* argv[])
     SetStaticPlantMiscProperties(argv);
     SetStaticHerbivoreMiscProperties(argv);
 
-    InitializeRandomGenerator(argv);
 
 
     SimulationEngine sim;
@@ -69,7 +72,21 @@ int main(int argc, char* argv[])
     //vid = (0 != std::stoi(argv[98]));
     //silent = (0 != std::stoi(argv[99]));
 
-    int returnValue = sim.Run();
+    return sim.Run();
+}
+
+void parseAllDecimalPoints(int argc, char* argv[])
+{
+    for (int i = 0; i < argc; i++)
+    {
+        for (int j = 0; j < strlen(argv[i]); j++)
+        {
+            if (argv[i][j] == ',')
+            {
+                argv[i][j] = '.';
+            }
+        }
+    }
 }
 
 void InitializeRandomGenerator(char* mainArgvs[])

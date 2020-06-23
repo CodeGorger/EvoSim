@@ -364,7 +364,7 @@ void Herbivore::ChooseSite(
     // Jump to first not too cold food site
     for (size_t i = 0; i < inFoundLocationKandidates.size(); i++)
     {
-        int h = inFoundLocationKandidates[i].first.GetY();
+        size_t h = inFoundLocationKandidates[i].first.GetY();
         if(inFoundLocationKandidates[i].second &&
             _inTempSpan(inTemperatureList[h]) )
         {
@@ -377,7 +377,7 @@ void Herbivore::ChooseSite(
     // Jump to first not too cold other site
     for (size_t i = 0; i < inFoundLocationKandidates.size(); i++)
     {
-        int h = inFoundLocationKandidates[i].first.GetY();
+        size_t h = inFoundLocationKandidates[i].first.GetY();
         if(!inFoundLocationKandidates[i].second &&
             _inTempSpan(inTemperatureList[h]))
         {

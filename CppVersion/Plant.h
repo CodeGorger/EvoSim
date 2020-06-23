@@ -5,6 +5,7 @@
 #include "Point.h"
 #include <vector>
 #include <string>
+#include <memory>
 
 class Plant
 {
@@ -37,10 +38,10 @@ private:
 	Point<size_t> _position;
 	int _age;
 
-	int _deathMonth;
-	int _birthMonth;
+	size_t _deathMonth;
+	size_t _birthMonth;
 	std::string _deathReason;
-	int _kidCount;
+	size_t _kidCount;
 	double _foodChunksRemaining;
 	std::string _phyloName;
 	double _isWaterDistance;
@@ -59,9 +60,10 @@ private:
 	// each tick if the temperature is perfect (heuristic)
 	static double _reproductionTemperaturePercent;
 
+	// Will calculate how unthirsty and happy about the temperature 
+	// a plant is and use it in its heuristic for the reproduction
+	// progress
 	void _calcReproductionProgress(double inCurrentTemperature);
-
-	bool _isNullPlant;
 
 public:
 	// ctor for the primal plant
@@ -86,12 +88,8 @@ public:
 	void SetPosition(Point<size_t> inLocation);
 	Point<size_t> GetPosition();
 
-	// Will calculate how unthirsty and happy about the temperature 
-	// a plant is and use it in its heuristic for the reproduction
-	// progress
-	void CalculateReproductionProgress(double inCurrentTemperature);
-
-	std::vector<Plant> CreateChildList(size_t inCurrentMonth);
+	
+	std::vector< std::shared_ptr<Plant> > CreateChildList(size_t inCurrentMonth);
 
 	static MutatingPropertyStatic& GetMaxWaterDistance_MPS();
 	static MutatingPropertyStatic& GetSeedProdFactor_MPS();
@@ -129,9 +127,7 @@ public:
 	bool CheckIfWillDie(double inCurrentTemperature);
 
 	void SetWaterDistance(double inWaterDistance);
-
-	bool IsNotNullPlant();
-	 
+ 
 	static std::string GetCSVHeader();
 	
 	std::string PrintAsCsv();

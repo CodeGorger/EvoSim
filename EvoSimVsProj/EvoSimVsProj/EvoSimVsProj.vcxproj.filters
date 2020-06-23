@@ -45,6 +45,9 @@
     <ClInclude Include="..\..\CppVersion\TileType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\CppVersion\PlantMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\CppVersion\EvoSimRandom.cpp">
@@ -66,6 +69,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\CppVersion\start.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\CppVersion\PlantMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
